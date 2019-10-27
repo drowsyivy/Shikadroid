@@ -1,3 +1,8 @@
+#!/usr/bin/env python
+
+import random
+
+
 def gen_uno_deck(count: int = 1, suits: str = "rgby", colourless: int = None):
     # By default, multiply the number of colourless cards by how many suits
     # there are.
@@ -51,15 +56,15 @@ def parse_card(card: str):
         raise ParseError(f"Invalid format {card!r}. Cards should be in format \"s#\".")
 
     if card[0] == 'x':
-        prefix = "\`\`\`\n~ "
+        prefix = "```\n~ "
     elif card[0] == 'r':
-        prefix = "\`\`\`diff\n- Red "
+        prefix = "```diff\n- Red "
     elif card[0] == 'g':
-        prefix = "\`\`\`diff\n+ Green "
+        prefix = "```diff\n+ Green "
     elif card[0] == 'b':
-        prefix = "\`\`\`markdown\n# Blue "
+        prefix = "```markdown\n# Blue "
     elif card[0] == 'y':
-        prefix = "\`\`\`fix\n% Yellow "
+        prefix = "```fix\n% Yellow "
     else:
         raise ParseError(f"Invalid colour {card[0]!r} in {card!r}. Valid suits are 'r', 'g', 'b', and 'y', and colourless 'x'.")
 
@@ -83,13 +88,13 @@ def parse_card(card: str):
         raise ParseError(f"Invalid card {card[1:]!r} in {card!r}. Valid cards are 0-10, s, r, w, t, f, d, and #.")
 
     if card[0] == 'x':
-        suffix = " ~\`\`\`"
+        suffix = " ~```"
     elif card[0] == 'r':
-        suffix = " -\`\`\`"
+        suffix = " -```"
     elif card[0] == 'g':
-        suffix = " +\`\`\`"
+        suffix = " +```"
     elif card[0] == 'b':
-        suffix = " #\`\`\`"
+        suffix = " #```"
     elif card[0] == 'y':
-        suffix = " %\`\`\`"
-    return "".join([prefix, value, suffix])
+        suffix = " %```"
+    return "".join((prefix, value, suffix))
