@@ -62,67 +62,88 @@ class ParseError(ValueError):
     pass
 
 
+HANAFUDA_MONTHS = {
+    "1": "Pine",
+    "2": "Plum",
+    "3": "Cherry",
+    "4": "Wisteria",
+    "5": "Iris",
+    "6": "Peony",
+    "7": "Lespedeza",
+    "8": "Pampas",
+    "9": "Chrysanthemum",
+    "10": "Maple",
+    "11": "Willow",
+    "12": "Paulownia"
+}
+
+
 def parse_hanafuda(card: str):
     if not len(card) == 2 and not card[1:].isdigit():
         raise ParseError(f"Invalid format {card!r}. Cards should be in format \"s#\".")
 
-    if card[0] == 'x': prefix = "```\n~"
-    elif card[0] == 't': prefix = "```diff\n-"
-    elif card[0] in "pq": prefix = "```diff\n+"
+    if card[0] == 'x':
+        prefix = "```\n~"
+    elif card[0] == 't':
+        prefix = "```diff\n-"
+    elif card[0] in "pq":
+        prefix = "```diff\n+"
     else:
-        raise ParseError(f"Invalid colour {card[0]!r} in {card!r}. Valid suits are 'x', 't', 'p' and 'q'.")
+        raise ParseError(f"Invalid value {card[0]!r} in {card!r}. Valid values are 'x', 't', 'p' and 'q'.")
 
-    if card[1:].isdigit() and int(card[1:]) in range(1,13):
+    if card[1:] in HANAFUDA_MONTHS:
+        month_en = HANAFUDA_MONTHS[card[1:]]
         month_num = int(card[1:])
-        month_en = {
-            1: "Pine",
-            2: "Plum",
-            3: "Cherry",
-            4: "Wisteria",
-            5: "Iris",
-            6: "Peony",
-            7: "Lespedeza",
-            8: "Pampas",
-            9: "Chrysanthemum",
-            10: "Maple",
-            11: "Willow",
-            12: "Paulownia"
-        }[month_num]
     else:
-        raise ParseError(f"Invalid card {card[1:]!r} in {card!r}. Valid suits are 1-12.")
+        raise ParseError(f"Invalid month {card[1:]!r} in {card!r}. Valid months are 1-12.")
 
-    if card[0] == 'p': #10 pts
-        value_en = {
-            2: "Nightingale",
-            4: "Cuckoo",
-            5: "Bridge",
-            6: "Butterfly",
-            7: "Boar",
-            8: "Goose",
-            9: "Wine cup",
-            10: "Deer",
-            11: "Rain"
-        }.get(month_num, "Invalid")
-    elif card[0] == 'q': #20 pts
-        value_en = {
-            1: "Crane",
-            3: "Curtain",
-            8: "Moon",
-            11: "Swallow",
-            12: "Phoenix"
-        }.get(month_num, "Invalid")
-    elif card[0] == 't': # tanzaku
-        if month_num in range(1,4): value_en = "Red Poem Tanzaku"
-	        elif month_num in (4,5,7): value_en = "Red Tanzaku"
-        elif month_num in (6,9,10): value_en = "Blue Tanzaku"
-        else: value_en = "Invalid"
-    elif card[0] == 'x': value_en = "Plain" #plain
-    else:
-        raise ParseError(f"Invalid card {card[1:]!r} in {card!r}. Valid cards are 0-10, s, r, w, t, f, d, and #.")
+    if card[0] == 'p':      # 10 pts
+        try:
+            value_en = {
+                2: "Nightingale",
+                4: "Cuckoo",
+                5: "Bridge",
+                6: "Butterfly",
+                7: "Boar",
+                8: "Goose",
+                9: "Wine cup",
+                10: "Deer",
+                11: "Rain"
+            }[month_num]
+        except KeyError:
+            raise ParseError(f"Card value 'p' invalid in month {month_num!r} ({month_en}).") from None
+    elif card[0] == 'q':    # 20 pts
+        try:
+            value_en = {
+                1: "Crane",
+                3: "Curtain",
+                8: "Moon",
+                11: "Swallow",
+                12: "Phoenix"
+            }[month_num]
+        except KeyError:
+            raise ParseError(f"Card value 'q' invalid in month {month_num!r} ({month_en}).") from None
+    elif card[0] == 't':    # tanzaku
+        if 1 <= month_num <= 3:
+            value_en = "Red Poem Tanzaku"
+        elif month_num in (4, 5, 7):
+            value_en = "Red Tanzaku"
+        elif month_num in (6, 9, 10):
+            value_en = "Blue Tanzaku"
+        else:
+            raise ParseError(f"Card value 't' invalid in month {month_num!r} ({month_en}).")
+    elif card[0] == 'x':    # plain
+        if month_num == 11:
+            value_en = "Lightning"
+        else:
+            value_en = "Plain"
 
-    if card[0] == 'x': suffix = "~```"
-    elif card[0] == 't': suffix = "- ```"
-    elif card[0] in "pq": suffix = "+ ```"
+    if card[0] == 'x':
+        suffix = "~```"
+    elif card[0] == 't':
+        suffix = "- ```"
+    elif card[0] in "pq":
+        suffix = "+ ```"
     return " ".join((prefix, month_en, value_en, suffix))
 
 
@@ -149,7 +170,7 @@ def parse_card(card: str):
     elif card[0] == 'h':
         prefix = "```diff\n- \u2665"
     else:
-        raise ParseError(f"Invalid colour {card[0]!r} in {card!r}. Valid suits are 'r', 'g', 'b', and 'y', and colourless 'x'.")
+        raise ParseError(f"Invalid colour {card[0]!r} in {card!r}. Valid suits are 's', 'c', 'd', 'h', 'r', 'g', 'b', and 'y', and colourless 'x'.")
 
     if card[1:].isdigit():
         value = card[1:]
@@ -176,7 +197,7 @@ def parse_card(card: str):
     elif card[1] == 'j':
         value = "Joker" if (card[0] == 'x') else "Jack"
     else:
-        raise ParseError(f"Invalid card {card[1:]!r} in {card!r}. Valid cards are 0-10, s, r, w, t, f, d, and #.")
+        raise ParseError(f"Invalid card {card[1:]!r} in {card!r}. Valid cards are 0-10, a, k, q, j, s, r, w, t, f, d, and #.")
 
     if card[0] == 'x':
         suffix = "~```"
@@ -188,7 +209,7 @@ def parse_card(card: str):
         suffix = "#```"
     elif card[0] == 'y':
         suffix = "%```"
-    elif card[0] ==s':
+    elif card[0] == 's':
         suffix = "of Spades \u2660 -```"
     elif card[0] == 'c':
         suffix = "of Clubs \u2663 -```"
