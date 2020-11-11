@@ -16,7 +16,7 @@ HANAFUDA_CARD = re.compile(
     r"|crane|nightingale|curtain|cuckoo|bridge|butterflies|boar|moon|geese"
     r"|sake cup|deer|rain|swallow|lightning|phoenix)"
     # Reversed order month
-    r"(?(suit)|(?: of | )?(?P<suit>1[0-2]|[1-9]|pine|january|plum|february"
+    r"(?(suit)|(?: of | )?(?P<rsuit>1[0-2]|[1-9]|pine|january|plum|february"
     r"|cherry|march|wisteria|april|iris|may|peony|june|lespedeza|july|pampas"
     r"|august|chrysanthemum|september|maple|october|willow|november|paulownia"
     r"|december)?)\b",
@@ -106,7 +106,7 @@ CARD = re.compile(
     r"|nine|ten|skip|reverse|wild(?: draw four| dos| #)?|draw two|draw four"
     r"|dos|ace|king|queen|jack|joker)"
     # Reversed order suit
-    r"(?(suit)|(?: of | )?(?P<suit>[rgbyxscdh]|red|green|blue|yellow|spades"
+    r"(?(suit)|(?: of | )?(?P<rsuit>[rgbyxscdh]|red|green|blue|yellow|spades"
     r"|clubs|diamonds|hearts)?)\b",
     re.IGNORECASE
 )
@@ -202,8 +202,12 @@ def parse_hanafuda(card: str):
     if not match:
         raise ParseError(f"Invalid Hanafuda card {card!r}; must be a month and a type, or the name of a special card.")
     value, suit = match.group("value", "suit")
-    value, suit = value.casefold(), suit.casefold()
-    if not suit:
+    if suit is None:
+        suit = match.group("rsuit")
+    value = value.casefold()
+    if suit:
+        suit = suit.casefold()
+    else:
         if value in HANAFUDA_UNIQUES:   # Unique card names (don't need month)
             return HANAFUDA_UNIQUES[value]
         else:
@@ -226,9 +230,9 @@ def parse_hanafuda(card: str):
         value = HANAFUDA_VALUES[value]
     elif value not in "xtpq":
         raise ParseError(f"Invalid Hanafuda value {value!r} in card {card!r}.")
-    if ((value == "q" and suit not in (1, 3, 8, 11, 12)) or
-            (value == "p" and suit in (1, 3, 12)) or
-            (value == "t" and suit in (8, 12))):
+    if ((value == "q" and suit not in ("1", "3", "8", "11", "12")) or
+            (value == "p" and suit in ("1", "3", "12")) or
+            (value == "t" and suit in ("8", "12"))):
         raise ParseError(f"Hanafuda value {value!r} can't be found in month {suit!r}; card {card!r} is invalid.")
     return "".join((value, suit))
 
@@ -238,16 +242,21 @@ def parse_card(card: str):
     if not match:
         raise ParseError(f"Invalid card {card!r}; must be a suit followed by a value.")
     suit, value = match.group("suit", "value")
-    suit, value = suit.casefold(), value.casefold()
+    if suit is None:
+        suit = match.group("rsuit")
+    value = value.casefold()
     if not suit:
         suit = "x"
     else:
+        suit = suit.casefold()
         if suit[0] not in "rgbyxscdh":
             raise ParseError(f"Invalid suit {suit!r} in card {card!r}.")
         else:
             suit = suit[0]
     if value == "joker" and not suit == "x":
         raise ParseError(f"Jokers can't have suits (suit {suit!r} in card {card!r}).")
+    elif value == "jack" and suit == "x":
+        raise ParseError(f"Jacks must have a suit (suitless card {card!r}).")
     if value in VALUES:
         value = VALUES[value]
     elif value not in "srwtfd#akqj" and not (value.isdigit() and 0 <= int(value) <= 10):
@@ -257,6 +266,8 @@ def parse_card(card: str):
         raise ParseError(f"Nonsensical suit/value pair ({suit}/{value}) in card {card!r}.")
     elif suit in "rgby" and value in "akqj":
         raise ParseError(f"Nonsensical suit/value pair ({suit}/{value}) in card {card!r}.")
+    elif suit == 'x' and value not in "wfdj":
+        raise ParseError(f"Nonsensical suitless card {card!r}.")
     return "".join((suit, value))
 
 
